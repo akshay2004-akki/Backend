@@ -9,8 +9,8 @@ dotenv.config()
 export const verifyJWT = asyncHandler(async(req, _, next) => {
     try {
         //console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
-        console.log("authorization",req.header("Authorization"));  //output : undefined
-        console.log("cookies : ",req.cookies);  //output : [Object: null prototype] {}
+        //console.log("authorization",req.header("Authorization"));  //output : undefined
+        //console.log("cookies : ",req.cookies);  //output : [Object: null prototype] {}
         const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ", "")
         
         console.log("token : ",token);
