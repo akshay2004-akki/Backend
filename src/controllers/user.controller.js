@@ -268,34 +268,32 @@ const getCurrentUser = asyncHandler( async (req,res)=>{
     )
 } )
 
-const updateAccountDetails = asyncHandler (async (req,res)=>{
-    const {fullname, email} = req.body
+const updateAccountDetails = asyncHandler(async(req, res) => {
 
-    if(!fullname || !email){
-        throw new ApiError(400, "Fullname or Username required");
+    console.log(req.body);
+    const {fullname, email} = req.body
+    console.log(fullname);
+
+    if (!fullname || !email) {
+        throw new ApiError(400, "All fields are required")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
-            $set:{
+            $set: {
                 fullname,
-                email
+                email: email
             }
         },
-        {new:true}
+        {new: true}
+        
     ).select("-password")
 
     return res
     .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            user,
-            "Account details updates successfully"
-        )
-    )
-})
+    .json(new ApiResponse(200, user, "Account details updated successfully"))
+});
 
 const updateUserAvatar =asyncHandler (async (req,res)=>{
     const avatarLocalPath = req.file?.path
@@ -320,7 +318,7 @@ const updateUserAvatar =asyncHandler (async (req,res)=>{
         new ApiResponse(
             200,
             user,
-            "Cover Image Updated successfully"
+            "Avatar Updated successfully"
         )
     )
 
@@ -339,7 +337,7 @@ const updateUserCoverImage =asyncHandler (async (req,res)=>{
     if(!coverImage.url){
         throw new ApiError(400,"Error while uploading cover")
     }
-
+    console.log(coverImage.url)
     const user = await User.findByIdAndUpdate(req.user?._id, {
         coverImage : coverImage.url
     }, {new:true}).select("password")
@@ -358,13 +356,15 @@ const updateUserCoverImage =asyncHandler (async (req,res)=>{
 
 const getUserChannelProfile = asyncHandler(async (req,res)=>{
 
+    console.log(req.params)
+
     const {username} = req.params;
     
     if(!username?.trim()){
         throw new ApiError(404, "Username is missing");
     }
 
-    const channel = User.aggregate([
+    const channel = await User.aggregate([
         {
             $match : {
                 username : username?.toLowerCase()
@@ -398,10 +398,10 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
         {
             $addFields : {
                 subscribersCount : {
-                    $size : "subscribers"
+                    $size : "$subscribers"
                 },
                 channelSubscribedToCount : {
-                    $size : "subscribedTo"
+                    $size : "$subscribedTo"
                 },
                 isSubscribed : {
                     $cond : {
@@ -425,9 +425,9 @@ const getUserChannelProfile = asyncHandler(async (req,res)=>{
             }
         }
     ])
-
+    console.log(await channel.length)
     if(!channel?.length){
-        throw new ApiError(404, "Channel doea not exist")
+        throw new ApiError(404, "Channel does not exist")
     }
 
     return res
