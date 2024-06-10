@@ -9,43 +9,43 @@ import { logOutUser } from "./user.controller.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy = "createdAt", sortType = "desc", userId } = req.query
-    //TODO: get all videos based on query, sort, pagination
+    const { page = 1, limit = 10, query, sortBy = "createdAt", sortType = "desc" } = req.query;
+    const userId = req.user?._id; // Assuming you have middleware to attach user to the request
+    console.log("UserId:", userId);
 
-    const match = {}
-    if(!query){
-        throw new ApiError(400, "Queries are not available ")
+    const match = {};
+    if (!query) {
+        throw new ApiError(400, "Query parameter is required");
     }
 
     match.$or = [
-        {title: { $regex: query, $options: 'i' }},
-        {description: { $regex: query, $options: 'i' }}
-    ]
+        { title: { $regex: query, $options: 'i' } },
+        { description: { $regex: query, $options: 'i' } }
+    ];
 
     if (userId) {
         if (!isValidObjectId(userId)) {
             throw new ApiError(400, "Invalid User ID");
         }
-        match.owner = mongoose.Types.ObjectId(userId);
+        match.owner = new mongoose.Types.ObjectId(userId);
     }
-    const sort = {}
-    sort[sortBy] = sortType==="desc"? -1:1;
 
-    //aggregate paginate code : 
+    const sort = {};
+    sort[sortBy] = sortType === "desc" ? -1 : 1;
+
+    // Aggregation pipeline
     const pipeline = [
+        { $match: match },
         {
-            $match : match
-        },
-        {
-            $lookup : {
-                from : "users",
-                localField : "owner",
-                foreignField : "_id",
-                as : "ownerdetails"
+            $lookup: {
+                from: "users", // Make sure this matches the users collection name
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerdetails"
             }
         },
-        {$unwind : "$ownerdetails"},
-        {$sort : sort},
+        { $unwind: "$ownerdetails" },
+        { $sort: sort },
         {
             $project: {
                 videoFile: 1,
@@ -57,34 +57,32 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 isPublished: 1,
                 createdAt: 1,
                 owner: {
-                    _id: '$ownerDetails._id',
-                    fullName: '$ownerDetails.fullname',
-                    email: '$ownerDetails.email'
+                    _id: "$ownerdetails._id",
+                    fullName: "$ownerdetails.fullname",
+                    email: "$ownerdetails.email"
                 }
             }
         }
     ];
-    //pagination
+
+    // Pagination options
     const options = {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10)
     };
 
     try {
-        const videos = await Video.aggregatePaginate(Video.aggregate(pipeline), options)
+        const videos = await Video.aggregatePaginate(Video.aggregate(pipeline), options);
+        console.log(videos);
         return res
-        .status(200)
-        .json(
-            new ApiResponse(
-                200,
-                videos,
-                "video fetched successfully"
-            )
-        )
+            .status(200)
+            .json(new ApiResponse(200, videos, "Videos fetched successfully"));
     } catch (error) {
-        throw new ApiError(404,error?.message||"error occured while aggregation")
+        console.error("Error during aggregation:", error);
+        throw new ApiError(404, error?.message || "Error occurred while fetching videos");
     }
-})
+});
+
 
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description, duration} = req.body
@@ -115,7 +113,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
         description,
         duration,
         videoFile : videoFile.url,
-        thumbnail : thumbnail.url
+        thumbnail : thumbnail.url,
+        owner : req.user._id
     })
 
     return res
@@ -132,7 +131,9 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: get video by id
+
     
+
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
