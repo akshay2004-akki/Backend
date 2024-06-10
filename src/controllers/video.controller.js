@@ -129,8 +129,70 @@ const publishAVideo = asyncHandler(async (req, res) => {
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
+
+    /*
+        1. Extract the videoId from req.params: You've already done this part.
+        2. Validate the videoId: Ensure the videoId is a valid MongoDB ObjectId.
+        3. Find the video by its ID: Use Mongoose to find the video document.
+        4. Handle cases where the video is not found: Return an appropriate response if the video is not found.
+        5. Include user details: Optionally, if you want to include the user details like in your previous queries, you can use an aggregation pipeline with $lookup.
+        6. Send the response: Send the video details as a response to the client. 
+    */
+
+    console.log(req.params)
     const { videoId } = req.params
     //TODO: get video by id
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(404, "incorrect Video ID")
+    }
+
+    const video = await Video.aggregate(
+        [
+            {
+                $match : {_id : new mongoose.Types.ObjectId(videoId)}
+            },
+            {
+                $lookup: {
+                    from : "users",
+                    localField : "owner",
+                    foreignField : "_id",
+                    as : "ownerdetails"
+                }
+            },
+            {$unwind : "$ownerdetails"},
+            {
+                $project : {
+                    videoFile: 1,
+                    thumbnail: 1,
+                    title: 1,
+                    description: 1,
+                    duration: 1,
+                    views: 1,
+                    isPublished: 1,
+                    createdAt: 1,
+                    owner: {
+                        _id: "$ownerdetails._id",
+                        fullName: "$ownerdetails.fullname",
+                        email: "$ownerdetails.email"
+                    }
+                }
+            }
+        ]
+    )
+
+    if(!video){
+        throw new ApiError(404, "Error occured while fetching video")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            video,
+            "video fetched successfully"
+        )
+    )
 
     
 
