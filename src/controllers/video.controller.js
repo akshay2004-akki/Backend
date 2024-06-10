@@ -5,6 +5,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import { logOutUser } from "./user.controller.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -21,10 +22,12 @@ const getAllVideos = asyncHandler(async (req, res) => {
         {description: { $regex: query, $options: 'i' }}
     ]
 
-    if(!userId){
-        throw new ApiError(400, "User not present")
+    if (userId) {
+        if (!isValidObjectId(userId)) {
+            throw new ApiError(400, "Invalid User ID");
+        }
+        match.owner = mongoose.Types.ObjectId(userId);
     }
-    match.owner = userId;
     const sort = {}
     sort[sortBy] = sortType==="desc"? -1:1;
 
@@ -84,13 +87,52 @@ const getAllVideos = asyncHandler(async (req, res) => {
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description} = req.body
+    const { title, description, duration} = req.body
     // TODO: get video, upload to cloudinary, create video
+
+    console.log(title, description, duration);
+
+    if(!title || !description || !duration){
+        throw new ApiError(400, "Title and Description and duration is required")
+    }
+    const videoLocalPath = req.files?.videoFile[0]?.path;
+    const thumbnailLocalPath = req.files?.thumbnail[0]?.path;
+    console.log(videoLocalPath, thumbnailLocalPath)
+    
+    if(!videoLocalPath || !thumbnailLocalPath){
+        throw new ApiError(409,"video or thumbnail local path not available")
+    }
+
+    const videoFile = await uploadOnCloudinary(videoLocalPath)
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
+
+    if(!videoFile || !thumbnail){
+        throw new ApiError(400,"Failed to upload on cloudinary")
+    }
+
+    const video = await Video.create({
+        title,
+        description,
+        duration,
+        videoFile : videoFile.url,
+        thumbnail : thumbnail.url
+    })
+
+    return res
+    .status(201)
+    .json(
+        new ApiResponse(
+            200,
+            video,
+            "Video Uploaded successfully"
+        )
+    )
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: get video by id
+    
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
