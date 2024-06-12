@@ -200,7 +200,44 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    const {title, description} = req.body
     //TODO: update video details like title, description, thumbnail
+
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(404, "Video Id is not valid")
+    }
+
+    const video = await Video.findById(videoId);
+
+    if(!video){
+        throw new ApiError(400, "Video does not exist")
+    }
+
+    if(title){
+        video.title = title;
+    }
+    if(description){
+        video.description = description
+    }
+    if(req.files){
+        const newThumbnailLocalPath = req.files?.path;
+        const newthumbnail = await uploadOnCloudinary(newThumbnailLocalPath);
+         if(!newthumbnail){
+            throw new ApiError(401,"Error occured while uploading on cloudinary")
+         }
+        video.thumbnail = newthumbnail?.url
+    }
+    await video.save({validateBeforeSave:false});
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            video,
+            "Video Updated Successfully"
+        )
+    )
 
 })
 
