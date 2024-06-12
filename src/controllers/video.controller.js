@@ -219,8 +219,8 @@ const updateVideo = asyncHandler(async (req, res) => {
     if(description){
         video.description = description
     }
-    if(req.files){
-        const newThumbnailLocalPath = req.files?.path;
+    if(req.file){
+        const newThumbnailLocalPath = req.file?.path;
         const newthumbnail = await uploadOnCloudinary(newThumbnailLocalPath);
          if(!newthumbnail){
             throw new ApiError(401,"Error occured while uploading on cloudinary")
@@ -238,16 +238,60 @@ const updateVideo = asyncHandler(async (req, res) => {
             "Video Updated Successfully"
         )
     )
-
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400, "VideoId is not valid");
+    }
+
+    try {
+        const video = await Video.findByIdAndDelete(videoId);
+
+        if(!video){
+            throw new ApiError(409,"Video does not exist");
+        }
+
+        return res.status(200).json(new ApiResponse(200, null, "video Deleted Successfully"))
+
+    } catch (error) {
+        throw new ApiError(409,error?.message)
+    }
+
+
+
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(401, "Video Id is not valid")
+    }
+
+    try {
+        const video = await Video.findById(videoId)
+        if(!video){
+            throw new ApiError(404, "Video Not Found")
+        }
+    
+        video.isPublished = !video.isPublished
+        await video.save({validateBeforeSave:false})
+    
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                video,
+                "Video publish status toggled successfully"
+            )
+        )
+    } catch (error) {
+        throw new ApiError(400, error?.message)
+    }
 })
 
 export {
