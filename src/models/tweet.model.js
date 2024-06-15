@@ -6,7 +6,7 @@ const tweetSchema = new Schema({
         ref : "User"
     },
     content : {
-        type : String,
+        type : String, 
         required : true
     }
 }, {timestamps:true})
