@@ -143,13 +143,46 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
 const deletePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     // TODO: delete playlist
-    
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(404,"Invalid Playlist Id")
+    }
+    const playlist = await Playlist.findById(playlistId)
+    if(!playlist){
+        throw new ApiError(404,"Playlist doesnot exist")
+    }
+    try {
+        await Playlist.findByIdAndDelete(playlistId)
+        return res.status(200).json(new ApiResponse(200, null, "playlist Deleted Successfully"))
+    } catch (error) {
+        throw new ApiError(404, error?.message)
+    }
+
 })
 
 const updatePlaylist = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     const {name, description} = req.body
     //TODO: update playlist
+
+    if(!isValidObjectId(playlistId)){
+        throw new ApiError(400,"Invalid Playlist Id")
+    }
+
+    if(!name || !description){
+        throw new ApiError(409,"Name and description are required")
+    }
+
+    try {
+        // const playlist = await Playlist.findById(playlistId);
+        // if(!playlist){
+        //     throw new ApiError(409, "playlist does not exist");
+        // }
+        const playlist = await Playlist.findByIdAndUpdate(playlistId,{name : name, description : description})
+        await playlist.save({validateBeforeSave:false})
+        return res.status(200).json(new ApiResponse(200,playlist,"Playlist Updated successfully"))
+    } catch (error) {
+        throw new ApiError(400, error?.message)
+    }
 })
 
 export {
