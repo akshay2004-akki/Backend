@@ -3,6 +3,7 @@ import {Playlist} from "../models/playlist.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
+import { Video } from "../models/video.model.js"
 
 
 const createPlaylist = asyncHandler(async (req, res) => {
@@ -53,11 +54,55 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 const getPlaylistById = asyncHandler(async (req, res) => {
     const {playlistId} = req.params
     //TODO: get playlist by id
+    if(!playlistId || !isValidObjectId(playlistId)){
+        throw new ApiError(404, "Invalid Playlist Id")
+    }
+
+    try {
+        const playList = await Playlist.findById(playlistId);
+        if(!playList){
+            throw new ApiError(400, "Playlist does not exist");
+        }
+
+        return res.status(201).json(new ApiResponse(201, playList, "Playlist fetched successfully"))
+    } catch (error) {
+        throw new ApiError(400, error?.message)
+    }
     
+
 })
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
-    const {playlistId, videoId} = req.params
+    const {playlistId, videoId} = req.params;
+
+    if(!isValidObjectId(playlistId) || !isValidObjectId(videoId)){
+        throw new ApiError(404,"Video or Playlist Id is not valid")
+    }
+
+    try {
+        const playlist = await Playlist.findById(playlistId);
+    
+        if(!playlist){
+            throw new ApiError(404,"Playlist does not exist")
+        }
+    
+        const video = await Video.findById(videoId);
+        if(!video){
+            throw new ApiError(404,"Video does not exist")
+        }
+    
+        if(playlist.videos.includes(videoId)){
+            return res.status(400).json(new ApiResponse(400,null,"video already exist"))
+        }
+    
+        playlist.videos.push(videoId);
+        await playlist.save({validateBeforeSave : false})
+
+        return res.status(200).json(new ApiResponse(200, playlist, "video Added to playlist"))
+    } catch (error) {
+        throw new ApiError(400, error?.message)
+    }
+
 })
 
 const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
