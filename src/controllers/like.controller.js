@@ -64,7 +64,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
                 likedBy : userId,
                 comment : commentId
             })
-            return res.status(201).json(new ApiResponse(200,newLike ,"Like added successfully"))
+            return res.status(201).json(new ApiResponse(201,newLike ,"Like added successfully"))
         }
 
     } catch (error) {

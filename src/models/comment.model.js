@@ -7,11 +7,11 @@ const commentSchema = new Schema({
         required : true
     },
     video : {
-        type : mongoose.Types.ObjectId,
+        type : mongoose.Types.ObjectId, 
         ref : "Video"
     },
     owner : {
-        type : mongoose.Types.ObjectId,
+        type : mongoose.Types.ObjectId, 
         ref : "User"
     }
 }, {timestamps:true})
