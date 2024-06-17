@@ -4,7 +4,8 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import asyncHandler from "../utils/asyncHandler.js"
 import { Video } from "../models/video.model.js"
-import { Comment } from "../models/comment.model.js"
+import { Comment } from "../models/comment.model.js" 
+import { Tweet } from "../models/tweet.model.js"
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const {videoId} = req.params
@@ -68,7 +69,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         }
 
     } catch (error) {
-        throw new ApiError(404, error?.message)
+        throw new ApiError(500, error?.message)
     }
     
 
@@ -76,12 +77,54 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
+    const userId = req.user?._id
     //TODO: toggle like on tweet
+    if(!isValidObjectId(tweetId) || !tweetId){
+        throw new ApiError(400,"Invalid Tweet Id")
+    }
+    if(!userId || !isValidObjectId(userId)){
+        throw new ApiError(404,"Invalid userId")
+    }
+
+    const tweet = await Tweet.findById(tweetId);
+    if(!tweet){
+        throw new ApiError(404,"Tweet does not exist")
+    }
+
+    try {
+        const existingLike = await Like.findOne({tweet : tweetId, likedBy : userId})
+        if(existingLike){
+            await Like.findByIdAndDelete({_id:existingLike._id})
+            return res.status(200).json(new ApiResponse(200, null,"Like removed successfully"))
+        }
+
+        const newLike = await Like.create({tweet : tweetId, likedBy : userId});
+        return res.status(200).json(new ApiResponse(200, newLike,"Like added successfully"))
+    } catch (error) {
+        throw new ApiError(500,error?.message)
+    }
+
+
 }
 )
 
 const getLikedVideos = asyncHandler(async (req, res) => {
     //TODO: get all liked videos
+    const userId = req.user?._id
+
+    if(!isValidObjectId(userId) || !userId){
+        throw new ApiError(400,"Invalid User Id");
+    }
+
+    try {
+        const likedVideos = await Like.find({likedBy : userId, video : {$exists : true}})
+        
+        return res.status(200).json(new ApiResponse(200, likedVideos,"Liked Videos Fetched successfully"))
+
+    } catch (error) {
+        throw new ApiError(500,error?.message)
+    }
+
 })
 
 export {

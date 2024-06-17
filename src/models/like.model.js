@@ -10,7 +10,7 @@ const likeSchema = new Schema({
         ref : "Video" 
     },
     likedBy : {
-        type : mongoose.Types.ObjectId,
+        type : mongoose.Types.ObjectId, 
         ref : "User"
     },
     tweet : {
