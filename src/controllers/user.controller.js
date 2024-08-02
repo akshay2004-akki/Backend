@@ -198,7 +198,7 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
     const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
 
     try {
-        const user = User.findById(decodedToken?._id);
+        const user = await User.findById(decodedToken?._id);
         if(!user){
             throw new ApiError(401, "User does not exist")
         }
@@ -209,7 +209,7 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
     
         const options = {
             httpOnly : true,
-            secure : true
+            secure : false // true in production
         }
     
         const {accessToken, newRefreshToken} = await getAccessAndRefreshToken(user._id)
